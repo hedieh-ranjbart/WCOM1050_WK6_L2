@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Make the Call – WCOM1050 Week 6</title>
+<style>
+  body{font-family:system-ui,Arial,sans-serif;margin:0;padding:16px;background:#f4f4f6;color:#222;max-width:600px;margin:auto}
+  h1{font-size:1.3rem;margin:8px 0 4px}
+  .intro{font-size:.95rem;margin:0 0 12px}
+  #score{position:sticky;top:0;z-index:5;background:#373a36;color:#fff;padding:10px 12px;border-radius:8px;margin-bottom:14px;font-weight:bold}
+  .card{perspective:1000px;margin-bottom:16px}
+  .inner{position:relative;height:250px;transition:transform .5s;transform-style:preserve-3d;cursor:pointer}
+  .card.flipped .inner{transform:rotateY(180deg)}
+  .face{position:absolute;inset:0;padding:16px;border-radius:12px;box-shadow:0 2px 6px rgba(0,0,0,.15);
+        backface-visibility:hidden;-webkit-backface-visibility:hidden;overflow:auto;box-sizing:border-box}
+  .front{background:#fff}
+  .back{background:#a6192e;color:#fff;transform:rotateY(180deg)}
+  .tag{font-size:.75rem;font-weight:bold;text-transform:uppercase;color:#a6192e}
+  .q{font-size:1.05rem;font-weight:600}
+  .hint{font-size:.8rem;color:#666}
+  .btns{display:flex;gap:8px;margin-top:10px}
+  button{flex:1;padding:10px;border:0;border-radius:8px;font-size:.9rem;font-weight:bold;cursor:pointer}
+  button.chosen{outline:3px solid #ffd200}
+  button:disabled{opacity:.6}
+</style>
+</head>
+<body>
+<h1>Make the Call 🃏</h1>
+<p class="intro">With your partner: read the card, <b>agree on your call</b>, then tap to flip. Mark yourselves honestly!</p>
+<div id="score"></div>
+<div id="cards"></div>
+
+<script>
+const ETH = "Your call: 🟢 Fine as is · 🟡 Fine, but acknowledge it · 🔴 Red flag";
+const DOD = "Your call: DONE or NOT DONE? Say why.";
+const cards = [
+ {tag:"Ethics & IP", q:"Sam copied a particle effect from an online sketch and renamed the variables. The report doesn’t mention it.", c:ETH,
+  a:"🔴 Red flag. Renaming code doesn’t make it yours. List the source and check its licence. ACS value: Honesty (don’t misrepresent your work, including by leaving things out)."},
+ {tag:"Ethics & IP", q:"Your team used a coding assistant (e.g. ChatGPT or Copilot) to help fix a collision bug.", c:ETH,
+  a:"🟡 Fine, but acknowledge it. List the tool and what it did. Ownership check: can someone on the team explain the fix in their own words?"},
+ {tag:"Ethics & IP", q:"A second-year student spent 30 minutes showing Priya how to use arrays of objects.", c:ETH,
+  a:"🟡 Fine, but acknowledge it. Credit contributors from outside your team and teaching staff, such as other students, friends or family."},
+ {tag:"Ethics & IP", q:"The game’s background music is a pop song downloaded from YouTube.", c:ETH,
+  a:"🔴 Red flag. It’s very likely copyrighted. Replace it with a properly licensed track and credit the creator."},
+ {tag:"Ethics & IP", q:"Nobody can explain the save function. It appeared in one big commit called ‘fix’.", c:ETH,
+  a:"🔴 Red flag. Nobody knows where it came from or owns it. Trace the commit, then understand it or rewrite it. You should be able to explain every part of your project."},
+ {tag:"Definition of Done", q:"A feature works on Alex’s laptop. Nobody reviewed or tested it. Can it move to Done?", c:DOD,
+  a:"NOT DONE under almost any DoD. The DoD says what team members must do (review, test, document), not just whether the program runs. It should also say WHO checks."},
+ {tag:"Definition of Done", q:"A one-line bug fix (an issue) has a code comment and one teammate has checked it.", c:DOD,
+  a:"Probably DONE. A DoD can set a lighter standard for issues, where one checker and comments may be enough. Does YOUR DoD say this clearly?"},
+ {tag:"Definition of Done", q:"The ‘Pause game’ user story is coded and one person reviewed it, but nobody checked its acceptance criteria.", c:DOD,
+  a:"NOT DONE. Check the acceptance criteria for user stories. Many teams also require more than one reviewer and more documentation for user stories than for issues."}
+];
+
+let score = 0, marked = 0;
+const list = document.getElementById("cards");
+
+cards.forEach((c, i) => {
+  const d = document.createElement("div");
+  d.className = "card";
+  d.innerHTML =
+   `<div class="inner">
+      <div class="face front">
+        <span class="tag">${c.tag} · Card ${i+1}/${cards.length}</span>
+        <p class="q">${c.q}</p><p>${c.c}</p>
+        <p class="hint">Agree on your call first, then tap to flip ↻</p>
+      </div>
+      <div class="face back">
+        <p>${c.a}</p>
+        <div class="btns">
+          <button data-r="1">We got it ✔</button>
+          <button data-r="0">We missed it ✘</button>
+        </div>
+      </div>
+    </div>`;
+  d.querySelector(".inner").addEventListener("click", () => d.classList.toggle("flipped"));
+  d.querySelectorAll("button").forEach(b => b.addEventListener("click", e => {
+    e.stopPropagation();
+    if (d.dataset.done) return;
+    d.dataset.done = "1";
+    marked++; score += Number(b.dataset.r);
+    b.classList.add("chosen");
+    d.querySelectorAll("button").forEach(x => x.disabled = true);
+    update();
+  }));
+  list.appendChild(d);
+});
+
+function update(){
+  const s = document.getElementById("score");
+  s.textContent = marked < cards.length
+    ? `Score: ${score} / ${marked} marked · ${cards.length - marked} to go`
+    : `🎉 Finished! Score: ${score} / ${cards.length}. Pick the card you found hardest to report back.`;
+}
+update();
+</script>
+</body>
+</html>
