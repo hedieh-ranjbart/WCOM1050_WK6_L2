@@ -5,94 +5,165 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Make the Call – WCOM1050 Week 6</title>
 <style>
-  body{font-family:system-ui,Arial,sans-serif;margin:0;padding:16px;background:#f4f4f6;color:#222;max-width:600px;margin:auto}
-  h1{font-size:1.3rem;margin:8px 0 4px}
-  .intro{font-size:.95rem;margin:0 0 12px}
-  #score{position:sticky;top:0;z-index:5;background:#373a36;color:#fff;padding:10px 12px;border-radius:8px;margin-bottom:14px;font-weight:bold}
-  .card{perspective:1000px;margin-bottom:16px}
-  .inner{position:relative;height:250px;transition:transform .5s;transform-style:preserve-3d;cursor:pointer}
-  .card.flipped .inner{transform:rotateY(180deg)}
-  .face{position:absolute;inset:0;padding:16px;border-radius:12px;box-shadow:0 2px 6px rgba(0,0,0,.15);
-        backface-visibility:hidden;-webkit-backface-visibility:hidden;overflow:auto;box-sizing:border-box}
-  .front{background:#fff}
-  .back{background:#a6192e;color:#fff;transform:rotateY(180deg)}
-  .tag{font-size:.75rem;font-weight:bold;text-transform:uppercase;color:#a6192e}
-  .q{font-size:1.05rem;font-weight:600}
-  .hint{font-size:.8rem;color:#666}
-  .btns{display:flex;gap:8px;margin-top:10px}
-  button{flex:1;padding:10px;border:0;border-radius:8px;font-size:.9rem;font-weight:bold;cursor:pointer}
-  button.chosen{outline:3px solid #ffd200}
-  button:disabled{opacity:.6}
+body{font-family:system-ui,Arial,sans-serif;margin:0 auto;padding:16px;background:#f4f4f6;color:#222;max-width:640px}
+h1{font-size:1.3rem;margin:8px 0 4px}
+.intro{font-size:.95rem;margin:0 0 10px}
+#rounds{display:flex;gap:6px;margin-bottom:10px}
+#rounds button{flex:1;padding:8px;border:1px solid #a6192e;background:#fff;color:#a6192e;border-radius:8px;font-weight:bold;cursor:pointer}
+#rounds button.on{background:#a6192e;color:#fff}
+#score{position:sticky;top:0;z-index:5;background:#373a36;color:#fff;padding:10px 12px;border-radius:8px;margin-bottom:14px;font-weight:bold;font-size:.9rem}
+.card{background:#fff;border-radius:12px;box-shadow:0 2px 6px rgba(0,0,0,.15);padding:16px;margin-bottom:16px;transition:transform .2s ease}
+.card.turning{transform:perspective(800px) rotateY(90deg)}
+.card.right{background:#1e6b3a;color:#fff}
+.card.wrong{background:#a6192e;color:#fff}
+.tag{font-size:.75rem;font-weight:bold;text-transform:uppercase;color:#a6192e}
+.right .tag,.wrong .tag{color:#ffd200}
+.q{font-size:1rem;font-weight:600;margin:8px 0}
+pre{background:#272822;color:#f8f8f2;padding:8px;border-radius:6px;font-size:.78rem;overflow-x:auto;font-weight:normal}
+.opt{display:block;width:100%;text-align:left;margin:6px 0;padding:10px;border:1px solid #ccc;border-radius:8px;background:#fafafa;font-size:.9rem;cursor:pointer;color:#222}
+.opt.ok{background:#d6f5df;border-color:#1e6b3a}
+.opt.no{background:#f9d6d6;border-color:#a6192e}
+.hint{font-size:.8rem;color:#666}
+.res{font-weight:bold;font-size:1.05rem}
+.rep{background:rgba(255,255,255,.15);padding:8px;border-radius:8px;font-size:.9rem}
+.flipbtn{margin-top:8px;padding:8px 12px;border:0;border-radius:8px;font-weight:bold;cursor:pointer;background:#ffd200;color:#222}
 </style>
 </head>
 <body>
 <h1>Make the Call 🃏</h1>
-<p class="intro">With your partner: read the card, <b>agree on your call</b>, then tap to flip. Mark yourselves honestly!</p>
+<p class="intro">With your partner: read the card, <b>agree on your answer</b>, then tap it. <b>Your first tap counts!</b></p>
+<div id="rounds">
+  <button data-r="1">Round 1</button>
+  <button data-r="2">Round 2</button>
+  <button data-r="all" class="on">All</button>
+</div>
 <div id="score"></div>
 <div id="cards"></div>
 
 <script>
-const ETH = "Your call: 🟢 Fine as is · 🟡 Fine, but acknowledge it · 🔴 Red flag";
-const DOD = "Your call: DONE or NOT DONE? Say why.";
-const cards = [
- {tag:"Ethics & IP", q:"Sam copied a particle effect from an online sketch and renamed the variables. The report doesn’t mention it.", c:ETH,
-  a:"🔴 Red flag. Renaming code doesn’t make it yours. List the source and check its licence. ACS value: Honesty (don’t misrepresent your work, including by leaving things out)."},
- {tag:"Ethics & IP", q:"Your team used a coding assistant (e.g. ChatGPT or Copilot) to help fix a collision bug.", c:ETH,
-  a:"🟡 Fine, but acknowledge it. List the tool and what it did. Ownership check: can someone on the team explain the fix in their own words?"},
- {tag:"Ethics & IP", q:"A second-year student spent 30 minutes showing Priya how to use arrays of objects.", c:ETH,
-  a:"🟡 Fine, but acknowledge it. Credit contributors from outside your team and teaching staff, such as other students, friends or family."},
- {tag:"Ethics & IP", q:"The game’s background music is a pop song downloaded from YouTube.", c:ETH,
-  a:"🔴 Red flag. It’s very likely copyrighted. Replace it with a properly licensed track and credit the creator."},
- {tag:"Ethics & IP", q:"Nobody can explain the save function. It appeared in one big commit called ‘fix’.", c:ETH,
-  a:"🔴 Red flag. Nobody knows where it came from or owns it. Trace the commit, then understand it or rewrite it. You should be able to explain every part of your project."},
- {tag:"Definition of Done", q:"A feature works on Alex’s laptop. Nobody reviewed or tested it. Can it move to Done?", c:DOD,
-  a:"NOT DONE under almost any DoD. The DoD says what team members must do (review, test, document), not just whether the program runs. It should also say WHO checks."},
- {tag:"Definition of Done", q:"A one-line bug fix (an issue) has a code comment and one teammate has checked it.", c:DOD,
-  a:"Probably DONE. A DoD can set a lighter standard for issues, where one checker and comments may be enough. Does YOUR DoD say this clearly?"},
- {tag:"Definition of Done", q:"The ‘Pause game’ user story is coded and one person reviewed it, but nobody checked its acceptance criteria.", c:DOD,
-  a:"NOT DONE. Check the acceptance criteria for user stories. Many teams also require more than one reviewer and more documentation for user stories than for issues."}
+const LV=["Level 1 · Ethics & accountability","Level 2 · IP & ownership","Level 3 · Program design & quality","Level 4 · Scrum & Definition of Done"];
+const cards=[
+/* ---------- LEVEL 1: ETHICS (Week 6 Lesson 1) ---------- */
+{lv:0,q:"Your team is about to release a To-Do List App. You find a security flaw that could expose user data. The client says: ‘Ship it now, test later.’ What is the most professional response?",
+ o:["Release on time and quietly patch the flaw next week","Release, but add a disclaimer to the terms of use","Explain the risk to the client in writing, recommend a short delay, and propose a fix-and-test plan","Refuse to work with the client any further"],a:2,
+ why:"ACS Honesty: don’t stay silent or misrepresent the situation. Trustworthiness (h): build systems that are robust and secure. Respect (3.1f): identify and reduce risks to others. Refusing to work avoids the problem instead of managing it.",
+ rep:"If your program has a known bug at the acceptance test, say so openly. Don’t hide it."},
+{lv:0,q:"Mia takes on the high-score save feature. She has never used file input/output but says ‘Sure, easy.’ Two days before the deadline it doesn’t exist. Which ACS expectation did she miss FIRST?",
+ o:["Honesty (a): be truthful with the public","Trustworthiness (e): communicate your capabilities, including learning gaps, when accepting work","Respect for the profession (a): educate the public about ICT","Respect for others (g): respect intellectual property"],a:1,
+ why:"Taking on the task was fine. Hiding the skill gap was the problem. Saying ‘I need help or time to learn this’ lets the Scrum Master plan around it, and that’s what the ‘blockers’ stand-up question is for.",
+ rep:"Your roles and responsibilities section must match who actually did the work."},
+{lv:0,q:"Your game asks players for their full name and student ID and saves them, with scores, to scores.txt in your PUBLIC GitHub repo. What is the main ethical issue?",
+ o:["None. It’s only a class project","Copyright: the scores belong to the players","Privacy: personal data is publicly exposed. Collect only what you need (e.g. a nickname) and keep it out of the public repo","Inclusivity: not every player has a student ID"],a:2,
+ why:"ACS Trustworthiness (d): respect the privacy and confidentiality of personal information. Good design collects as little personal data as possible.",
+ rep:"In the ethics section, say what data your program stores and how you protect it."},
+{lv:0,q:"Which statement about the accords is correct?",
+ o:["The Washington Accord covers computing and IT qualifications through the ACS","The Seoul Accord covers computing and IT qualifications (through the ACS). The Washington Accord covers professional engineering degrees (through Engineers Australia)","The Sydney Accord covers professional engineering degrees","All three accords are run by the ACS"],a:1,
+ why:"Seoul = computing and IT (ACS). Washington = professional engineering degrees (Engineers Australia, International Engineering Alliance). Sydney = engineering technology programmes.",
+ rep:"This isn’t for the report, but it’s likely Knowledge Quiz material (Week 7)."},
+/* ---------- LEVEL 2: IP & OWNERSHIP (Lesson 2) ---------- */
+{lv:1,q:"Copilot generated most of your collision function and a teammate changed two lines. Your report says: ‘AI tools were used for minor debugging.’ Is this acknowledgement acceptable?",
+ o:["Yes. AI is allowed in this assessment, so the wording doesn’t matter","Yes. Any mention of AI is enough","No. It understates the contribution: name the tool, which part it generated, and what the team changed","No. AI-generated code must be deleted"],a:2,
+ why:"Lesson 2 asks: do your lists misrepresent your contribution, for example by leaving things out? Understating the AI’s role is a quieter version of the same problem. AI is allowed, but honesty still applies.",
+ rep:"Write each acknowledgement as: tool, what it produced, where it is in the code, what you changed."},
+{lv:1,q:"A teammate’s code uses advanced techniques nobody else recognises, and it isn’t connected to anything covered in the unit. They say ‘I found it online.’ What should the team do FIRST?",
+ o:["Leave it. It works","Delete it immediately","Ask them to walk the team through it, find and cite the original source, and make sure at least two people can explain it","Report the teammate to the teacher"],a:2,
+ why:"Lesson 2: do you own your project? Could you explain every part yourself? Parts that are ‘too good to be from this unit’ are a warning sign. Understand it and acknowledge it before thinking about escalating.",
+ rep:"For every major component, at least one team member should be able to explain it."},
+{lv:1,q:"Your team used Processing, GitHub, Microsoft Word, draw.io (architecture diagram), Grammarly (report editing) and a QR scanning app (testing input). Which MUST appear in your tools list?",
+ o:["All of them","Only draw.io","draw.io, Grammarly and the scanning app","None. Tools aren’t intellectual property"],a:2,
+ why:"Lesson 2: list all tools beyond Processing, Git, GitHub and word processing, including diagramming tools, text generators, coding assistants and scanning tools. Grammarly rewrites text, which goes beyond basic word processing, so list it to be safe.",
+ rep:"If you’re unsure whether to list a tool, list it. Leaving it out is the bigger risk."},
+{lv:1,q:"You found a sprite sheet licensed ‘CC BY-NC’ and a sound effect licensed ‘CC0’. What do you need to do?",
+ o:["Nothing for either. Creative Commons means free","Credit the sprite creator (BY) and check that non-commercial use (NC) fits. CC0 needs no credit, but listing it is good practice","Credit only the sound effect","You can’t use either of them"],a:1,
+ why:"BY = you must credit the creator. NC = non-commercial use only (a class project is fine). CC0 = public domain. ACS Respect (3.1g): respect others’ intellectual property.",
+ rep:"List every external asset with its source and licence, not just code."},
+/* ---------- LEVEL 3: PROGRAM DESIGN & QUALITY (Week 6 Lesson 1) ---------- */
+{lv:2,q:"What is the main design problem here, and the best fix?<pre>float x;   // global\nvoid draw() { ball.display(); }\nvoid mousePressed() { x = mouseX; }\n\n// inside class Ball:\nvoid display() { ellipse(x, 100, 20, 20); }</pre>",
+ o:["Nothing. Globals are faster","Hidden, tight coupling: Ball depends on a global that anything can change. Make x an attribute of Ball and update it through a method, e.g. ball.moveTo(mouseX)","Make x a local variable inside display()","Rename x to ballX so it’s clearer"],a:1,
+ why:"Week 6 L1: globals create hidden dependencies and poor encapsulation, so code is harder to trace, understand and reuse. ‘An object that is displayed deserves its own position.’ Renaming doesn’t remove the coupling, and a local variable would lose the position between frames.",
+ rep:"Arrows in your architecture diagram should show real dependencies. A global that everything uses is a hidden arrow."},
+{lv:2,q:"Which pairing of variable types is correct?",
+ o:["Ball speed → global. Distance during one collision check → attribute","Ball speed → attribute. Distance during one collision check → local. Main Game object used by draw() and mousePressed() → global","Everything → global, so all methods can see it","Ball speed → a parameter passed to every method"],a:1,
+ why:"Attributes describe an object or need to persist. Locals are used for one calculation and then forgotten. Globals are for the main objects created at the start and used by draw() and the event handlers. Ask: does everybody need to know this, and should everybody be able to change it?",
+ rep:"Fewer globals means lower coupling, an easy quality improvement to describe in your report."},
+{lv:2,q:"Your Player class moves the player, draws the score display, saves high scores to a file and plays background music. What’s the best assessment?",
+ o:["High cohesion, because everything is in one place","Low cohesion: one class has unrelated responsibilities. Split it into Player, HUD, ScoreManager and SoundManager","Tight coupling only. Cohesion is fine","It’s fine as long as it has comments"],a:1,
+ why:"Cohesion is how closely a component’s responsibilities belong together. ‘Everything in one place’ leads to a Big Ball of Mud. Splitting makes each part easier to test, replace and reuse (ISO 25010 maintainability).",
+ rep:"Each box in your architecture diagram should have one clear responsibility you can name."},
+{lv:2,q:"Which of these is NOT a sub-characteristic of Maintainability in the ISO 25010 model?",
+ o:["Modularity","Reusability","Testability","Usability"],a:3,
+ why:"ISO 25010 maintainability = modularity, reusability, analysability, modifiability and testability. Usability is a separate quality characteristic, about the user’s experience.",
+ rep:"Use these terms to justify design choices, e.g. ‘we split X to improve modularity and testability.’"},
+/* ---------- LEVEL 4: SCRUM & DoD (Week 6 L1 + Lesson 2) ---------- */
+{lv:3,q:"In your stand-up, Leo starts sharing his screen and debugging a problem live. Six minutes pass. What should the Scrum Master do?",
+ o:["Let it continue. Solving bugs is the point","Cancel the stand-up","Thank Leo, record it as a blocker, and arrange a follow-up after the stand-up with only the people needed","Ask the teacher to fix it"],a:2,
+ why:"Stand-ups are time-boxed (about 5–10 minutes) and cover progress, plans and blockers. The extra question ‘Is further discussion needed outside this meeting?’ exists for exactly this situation.",
+ rep:"Push the blocker and the follow-up plan to your README stand-up notes."},
+{lv:3,q:"Which Definition of Done item is the WEAKEST?",
+ o:["At least one teammate who didn’t write the code has reviewed it","Code is of good quality","No new Processing warnings are introduced","All acceptance criteria have been tested and the README is updated"],a:1,
+ why:"A DoD item must be checkable, so that two people reach the same answer. ‘Good quality’ is an opinion. Rewrite it as something you can check, e.g. ‘no new globals, every method commented, reviewed by one teammate.’",
+ rep:"Test your DoD: could a new team member decide Done or Not Done without asking anyone?"},
+{lv:3,q:"Which of these belongs in the Definition of Done, NOT in a user story or requirement?",
+ o:["As a player, I want to pause the game so I can take a break","Pressing P freezes all movement and shows ‘Paused’","The game runs at 60 frames per second","Every new method has a header comment and has been reviewed by one teammate"],a:3,
+ why:"Requirements and user stories say what the PROGRAM must do. The pause story, its acceptance criterion and the 60 fps target all describe the program (60 fps is a non-functional requirement). The DoD says what TEAM MEMBERS must do before work moves to Done.",
+ rep:"Keep your DoD separate from your requirements in both the repo and the report."},
+{lv:3,q:"Acceptance testing is next lesson. You have a working core game with two known bugs, plus a half-built level editor. Where should the team spend its remaining time?",
+ o:["Finish the level editor. More features impress testers","Fix the core bugs, make sure the game runs reliably, and move the level editor to the backlog","Split the time evenly between both","Rewrite the game with a better architecture"],a:1,
+ why:"From the Lesson 2 notes: something that works, even with limited features, is better than something that will be great when finished but doesn’t work. Unfinished work goes back to the backlog.",
+ rep:"Record the dropped feature and the reason in your report. That’s an engineering trade-off, one of the unit learning outcomes."}
 ];
 
-let score = 0, marked = 0;
-const list = document.getElementById("cards");
+/* Shuffle answer options each time the page loads */
+cards.forEach(c=>{const right=c.o[c.a];for(let j=c.o.length-1;j>0;j--){const r=Math.floor(Math.random()*(j+1));[c.o[j],c.o[r]]=[c.o[r],c.o[j]];}c.a=c.o.indexOf(right);});
 
-cards.forEach((c, i) => {
-  const d = document.createElement("div");
-  d.className = "card";
-  d.innerHTML =
-   `<div class="inner">
-      <div class="face front">
-        <span class="tag">${c.tag} · Card ${i+1}/${cards.length}</span>
-        <p class="q">${c.q}</p><p>${c.c}</p>
-        <p class="hint">Agree on your call first, then tap to flip ↻</p>
-      </div>
-      <div class="face back">
-        <p>${c.a}</p>
-        <div class="btns">
-          <button data-r="1">We got it ✔</button>
-          <button data-r="0">We missed it ✘</button>
-        </div>
-      </div>
-    </div>`;
-  d.querySelector(".inner").addEventListener("click", () => d.classList.toggle("flipped"));
-  d.querySelectorAll("button").forEach(b => b.addEventListener("click", e => {
-    e.stopPropagation();
-    if (d.dataset.done) return;
-    d.dataset.done = "1";
-    marked++; score += Number(b.dataset.r);
-    b.classList.add("chosen");
-    d.querySelectorAll("button").forEach(x => x.disabled = true);
-    update();
-  }));
-  list.appendChild(d);
-});
+const N=cards.length, chosen=new Array(N), els=[], list=document.getElementById("cards");
+let round="all";
+const L=k=>String.fromCharCode(65+k);
+const inRound=c=>round==="all"||(round==="1"?c.lv<2:c.lv>=2);
+
+function render(i,side){
+  const c=cards[i], ch=chosen[i], d=els[i];
+  const tag=`<span class="tag">${LV[c.lv]} · Card ${i+1}/${N}</span>`;
+  if(side==="front"){
+    d.className="card";
+    d.innerHTML=tag+`<div class="q">${c.q}</div>`+
+      c.o.map((t,k)=>`<button class="opt${ch===undefined?"":(k===c.a?" ok":(k===ch?" no":""))}" data-k="${k}" ${ch===undefined?"":"disabled"}>${L(k)}. ${t}</button>`).join("")+
+      (ch===undefined?`<p class="hint">Agree with your partner first. Your first tap counts.</p>`:`<button class="flipbtn">Show answer ↻</button>`);
+    if(ch===undefined) d.querySelectorAll(".opt").forEach(b=>b.onclick=()=>choose(i,+b.dataset.k));
+    else d.querySelector(".flipbtn").onclick=()=>flip(i,"front"===side?"back":"front");
+  } else {
+    const ok=ch===c.a;
+    d.className="card "+(ok?"right":"wrong");
+    d.innerHTML=tag+`<p class="res">${ok?"✔ Correct!":"✘ Not quite. Best answer: "+L(c.a)+". "+c.o[c.a]}</p><p>${c.why}</p><p class="rep">📝 <b>For your Group Report:</b> ${c.rep}</p><button class="flipbtn">↺ Show question</button>`;
+    d.querySelector(".flipbtn").onclick=()=>flip(i,"front");
+  }
+}
+function choose(i,k){ if(chosen[i]!==undefined) return; chosen[i]=k; update(); flip(i,"back"); }
+function flip(i,side){ els[i].classList.add("turning"); setTimeout(()=>render(i,side),200); }
 
 function update(){
-  const s = document.getElementById("score");
-  s.textContent = marked < cards.length
-    ? `Score: ${score} / ${marked} marked · ${cards.length - marked} to go`
-    : `🎉 Finished! Score: ${score} / ${cards.length}. Pick the card you found hardest to report back.`;
+  const vis=cards.map((c,i)=>i).filter(i=>inRound(cards[i]));
+  const done=vis.filter(i=>chosen[i]!==undefined);
+  const ok=done.filter(i=>chosen[i]===cards[i].a).length;
+  const s=document.getElementById("score");
+  if(done.length<vis.length){ s.textContent=`Score: ${ok} / ${done.length} answered · ${vis.length-done.length} to go`; return; }
+  let parts=[], worst=0, wp=2;
+  [0,1,2,3].forEach(l=>{
+    const ids=vis.filter(i=>cards[i].lv===l); if(!ids.length) return;
+    const r=ids.filter(i=>chosen[i]===cards[i].a).length;
+    parts.push(`L${l+1}: ${r}/${ids.length}`);
+    if(r/ids.length<wp){ wp=r/ids.length; worst=l; }
+  });
+  s.textContent=`🎉 Finished! ${ok}/${vis.length} · ${parts.join(" · ")} · Focus area for your report: ${LV[worst].split("· ")[1]}`;
 }
+
+cards.forEach((c,i)=>{ const d=document.createElement("div"); els.push(d); list.appendChild(d); render(i,"front"); });
+document.querySelectorAll("#rounds button").forEach(b=>b.onclick=()=>{
+  round=b.dataset.r;
+  document.querySelectorAll("#rounds button").forEach(x=>x.classList.toggle("on",x===b));
+  els.forEach((d,i)=>d.style.display=inRound(cards[i])?"":"none");
+  update();
+});
 update();
 </script>
 </body>
